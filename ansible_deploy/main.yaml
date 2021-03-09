@@ -1,0 +1,24 @@
+---
+- name:   Deploy wordpress application by ansible to k8s cluster
+  hosts:  k8s-master
+  become: yes
+
+  vars:
+    mysql_db_host:   wordpress-mysql
+    mysql_db_name:   wordpress
+    deploy_version:  wordpress.v1.0
+
+  tasks:
+  - name: Copy yaml manifests to k8s master node
+    copy: src=../kubernetes_manifests/yaml/ dest=/deploy/{{ deploy_version  }}/
+
+  - name: Copy jinja2-templates manifests to k8s master node
+    template:
+      src:   "{{ item.src  }}"
+      dest:  "{{ item.dest }}"
+    with_items:
+      - {src: '../kubernetes_manifests/j2_templates/deploy-wordpress.j2',dest: '/deploy/{{ deploy_version  }}/deploy-wordpress.yaml'}
+      - {src: '../kubernetes_manifests/j2_templates/deploy-mysql.j2',dest: '/deploy/{{ deploy_version  }}/deploy-mysql.yaml'}
+
+  - name: Deploy k8s manifests to cluster
+    shell: kubectl apply -f /deploy/{{ deploy_version }}/

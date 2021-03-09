@@ -1,0 +1,58 @@
+# create a service for wordpress
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-wordpress
+  labels:
+    app: nginx-wordpress
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: wordpress
+    tier: web-server
+  type: ClusterIP
+
+
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-wordpress
+  labels:
+    app: nginx-wordpress
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: web-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: web-server
+    spec:
+      containers:
+      - image: nginx:alpine
+        name: nginx
+        ports:
+        - containerPort: 80
+          name: nginx-port
+        volumeMounts:
+        - name: wordpress-persistent-storage
+          mountPath: "/var/www/html"          # which data will be stored
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: wordpress-persistent-storage
+        persistentVolumeClaim:
+          claimName: wordpress-persistent-storage
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+          items:
+          - key: nginx.conf
+            path: nginx.conf
